@@ -27,9 +27,8 @@ def guides_to_guide_data(image):
         horizontal_guides = [100000]
     if len(vertical_guides) == 0:
         vertical_guides = [100000]
-    gimp.message(str(horizontal_guides))
-    gimp.message(str(vertical_guides))
-    gimp.message('lol')
+    #gimp.message(str(horizontal_guides))
+
     return [guide_detail,guide_width_and_height,horizontal_guides,vertical_guides]
 
 import getpass
