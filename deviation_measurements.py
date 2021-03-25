@@ -81,15 +81,15 @@ def draw_rect(drawable, x1, y1, x2, y2):
 def newline(x1,y1,x2,y2):
 	return [x1,y1,x1,y1,x1,y1,x2,y2,x2,y2,x2,y2];
 
-def add_colored_border(image, drawable, real_size, border_color):
+def add_colored_border(image, drawable, real_size, photo_size, border_color):
   pdb.gimp_context_push()
   # Запрещаем запись информации для отмены действий,
   # что бы все выполненные скриптом операции можно было отменить одим махом
   # нажав Ctrl + Z или выбрав из меню "Правка" пункт "Отменить действие"
   pdb.gimp_image_undo_group_start(image)
   
+  # get info from guides
   guide_detail, guide_width_and_height, horizontal_guides, vertical_guides = guides_to_guide_data(image)
-
   #grab selection bounding box values
   selection = pdb.gimp_selection_bounds(image);
 
@@ -98,32 +98,33 @@ def add_colored_border(image, drawable, real_size, border_color):
   x2 = selection[3];
   y2 = selection[4];
 
-
   #adds a new path
   if (len(vertical_guides) > 0) or (len(horizontal_guides) > 0): #if there is at least one guide defined we create a path
-      #new_vectors = pdb.gimp_vectors_new(image,"guides vectors") # vectors
-      #pdb.gimp_image_insert_vectors(image,new_vectors,None,-1) # vectors
 
       all_vertical_points = sorted(set(vertical_guides + [x1,x2]))
       all_horizontal_points = sorted(set(horizontal_guides + [y1,y2]))
 
-      
-	 #draw vertical lines
+	  #draw vertical lines
       for ix in range(0,len(vertical_guides)):
             drawable = image.new_layer("vertical_line")
             for iy in range(0,len(all_horizontal_points)-1):
                 draw_pencil_lines(drawable, newline(vertical_guides[ix],all_horizontal_points[iy],vertical_guides[ix],all_horizontal_points[iy+1]))
-                # pdb.gimp_vectors_stroke_new_from_points(new_vectors,0,12,newline(vertical_guides[ix],all_horizontal_points[iy],vertical_guides[ix],all_horizontal_points[iy+1]),0); # vectors
 
-		#draw horizontal lines
+	  #draw horizontal lines
       for iy in range(0,len(horizontal_guides)):
             drawable = image.new_layer("horizontal_line")
             for ix in range(0,len(all_vertical_points)-1):
                 draw_pencil_lines(drawable, newline(all_vertical_points[ix],horizontal_guides[iy],all_vertical_points[ix+1],horizontal_guides[iy]))
-                #pdb.gimp_vectors_stroke_new_from_points(new_vectors,0,12,newline(all_vertical_points[ix],horizontal_guides[iy],all_vertical_points[ix+1],horizontal_guides[iy]),0); # vectors
 
-      #pdb.gimp_item_set_visible(new_vectors, 1)  # vectors
+      target_photo_size = float(abs(vertical_guides[0]-vertical_guides[1]))
+      target_real_size = (real_size / float(photo_size)) * target_photo_size
 
+      file_name = pdb.gimp_image_get_filename(image)
+      add_text(image, str(round(target_real_size, 1)) + ' mm.') 
+      with open(r"C:\test.csv", 'a') as file: 
+            file.writelines(file_name + ';'+ str(target_real_size) + '\n') 
+  else:
+        gimp.message('No guides on image')
 
 
   add_text(image, str(real_size) + 'mm.')
