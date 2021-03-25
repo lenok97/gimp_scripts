@@ -44,15 +44,15 @@ def create_selection(image, layer, thickness, feather):
 		pdb.gimp_selection_feather(image, feather)		
 
 
-# Fills the current selection using the given colour, painting onto the
+# Fills the current selection using the given color, painting onto the
 # given layer.
-def fill_selection(layer, colour):
-	# Cache existing foreground colour
+def fill_selection(layer, color):
+	# Cache existing foreground color
 	old_fg = pdb.gimp_palette_get_foreground()	
-	# Set foreground colour
-	pdb.gimp_palette_set_foreground(colour)	
+	# Set foreground color
+	pdb.gimp_palette_set_foreground(color)	
 	pdb.gimp_bucket_fill(layer, 0, 0, 100, 0, 0, 1, 1)	
-	# Restore cached foreground colour
+	# Restore cached foreground color
 	pdb.gimp_palette_set_foreground(old_fg)	
 
 
@@ -62,8 +62,8 @@ def add_text_outline(image, layer, thickness, feather):
 	gimp.progress_update(33)
 	create_selection(image, layer, thickness, feather)
 	gimp.progress_update(66)
-	colour = pdb.gimp_context_get_foreground()
-	fill_selection(new_layer, colour)	
+	
+	fill_selection(new_layer, gimpcolor.RGB(0,0,0))	
 	gimp.progress_update(100)
 	pdb.gimp_selection_none(image)
 # https://github.com/VegetarianZombie/gimp-text-outliner/blob/bc4ffbdebd06e8610144767c4d28111660c5b730/text-outliner.py
@@ -96,7 +96,7 @@ def add_text(image, text, points = 100, antialias = False, letter_spacing = -3, 
 
 
 # https://github.com/iwabuchiken/WS_Others.Art-deprecated.20190617_174059-/blob/fe2dad57431304497cc69bcaccb14a5004dea72d/JVEMV6/46_art/2_image-prog/1_gimp/4_/plugin_2_1_4.py
-def draw_pencil_lines(drawable, lines, width = 10, color = gimpcolor.RGB(39,221,65)):
+def draw_pencil_lines(drawable, lines, width = 10, color = gimpcolor.RGB(0,0,0)):
     pdb.gimp_context_set_foreground(color)
     pdb.gimp_context_set_brush_size(width)
     #pdb.gimp_paintbrush_default(drawable, len(lines), lines)
@@ -116,7 +116,7 @@ def add_colored_border(image, drawable, real_size, photo_size, border_color):
   stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, strokes[0])
   c_len = len(cpoints)
   drawable = image.new_layer('hypotenuse')
-  draw_pencil_lines(drawable, newline(cpoints[0], cpoints[1], cpoints[c_len-2], cpoints[c_len-1]))
+  draw_pencil_lines(drawable, newline(cpoints[0], cpoints[1], cpoints[c_len-2], cpoints[c_len-1]), color = gimpcolor.RGB(255,0,0))
   # CHECK !!!
   photo_size = pdb.gimp_vectors_stroke_get_length(vectors, strokes[1], 1)
   target_photo_size = float(abs(float(cpoints[0]) - cpoints[c_len-2]))
