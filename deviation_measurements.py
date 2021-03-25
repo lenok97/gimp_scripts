@@ -8,6 +8,65 @@ import string
 from gimpfu import *
 from array import array
 
+#https://github.com/VegetarianZombie/gimp-text-outliner/blob/bc4ffbdebd06e8610144767c4d28111660c5b730/text-outliner.py
+# Adds a new layer beneath the given layer. Return value is the new layer
+def add_new_layer_beneath(image, layer):
+	# Get the layer position.
+	pos = 0;
+	for i in range(len(image.layers)):
+		if(image.layers[i] == layer):
+			pos = i
+	
+	if image.base_type is RGB:
+		type = RGBA_IMAGE
+	else:
+		type = GRAYA_IMAGE
+		
+	# Add a new layer below the selected one
+	new_layer = gimp.Layer(image, "text outline", image.width, image.height, type, 100, NORMAL_MODE)
+	image.add_layer(new_layer, pos+1)	
+	return new_layer
+
+# Selects the contents of the given layer, then grows it by "thickness"
+# and feathers it by "feather" pixels
+def create_selection(image, layer, thickness, feather):
+	# Select the text
+	pdb.gimp_selection_layer_alpha(layer)
+	
+	# Grow the selection
+	pdb.gimp_selection_grow(image, thickness)
+	
+	# Feather it
+	if (feather > 0):
+		pdb.gimp_selection_feather(image, feather)		
+	return
+
+# Fills the current selection using the given colour, painting onto the
+# given layer.
+def fill_selection(layer, colour):
+	# Cache existing foreground colour
+	old_fg = pdb.gimp_palette_get_foreground()	
+	# Set foreground colour
+	pdb.gimp_palette_set_foreground(colour)	
+	# Fill the selection
+	pdb.gimp_bucket_fill(layer, 0, 0, 100, 0, 0, 1, 1)	
+	# Restore cached foreground colour
+	pdb.gimp_palette_set_foreground(old_fg)	
+	return
+
+# our script
+def add_text_outline(image, layer, thickness, feather):
+	gimp.progress_init("Drawing outline around text")
+	new_layer = add_new_layer_beneath(image, layer)
+	gimp.progress_update(33)
+	create_selection(image, layer, thickness, feather)
+	gimp.progress_update(66)
+	colour = pdb.gimp_context_get_foreground()
+	fill_selection(new_layer, colour)	
+	gimp.progress_update(100)
+	pdb.gimp_selection_none(image)
+# https://github.com/VegetarianZombie/gimp-text-outliner/blob/bc4ffbdebd06e8610144767c4d28111660c5b730/text-outliner.py
+
 # https://github.com/khufkens/GIMP_save_load_guides/blob/79229c289777cae9d505083eda22db14032930ee/GIMP_save_load_guides.py
 def guides_to_guide_data(image):
     guide_detail = ["Guide", '']
@@ -60,8 +119,9 @@ def add_text(image, text, points = 100, antialias = False, letter_spacing = -3, 
     pdb.gimp_text_layer_set_letter_spacing(text_layer, letter_spacing)
     
     # add shadow
-   # pdb.script-fu-drop-shadow(image, text_layer, gimpcolor.RGB(0, 0, 0, 255),
-                                           # 30.0, 6.0, 0.0, 5.0, watermark_shadow_opacity, NORMAL_MODE)
+    thickness = 2 
+    feather = 2
+    add_text_outline(image, text_layer, thickness, feather)
 
     #undo-end
     pdb.gimp_image_undo_group_end(image);
