@@ -88,47 +88,65 @@ def add_colored_border(image, drawable, real_size, photo_size, border_color):
   # нажав Ctrl + Z или выбрав из меню "Правка" пункт "Отменить действие"
   pdb.gimp_image_undo_group_start(image)
   
-  # get info from guides
-  guide_detail, guide_width_and_height, horizontal_guides, vertical_guides = guides_to_guide_data(image)
-  #grab selection bounding box values
-  selection = pdb.gimp_selection_bounds(image);
+  ## get info from guides
+  #guide_detail, guide_width_and_height, horizontal_guides, vertical_guides = guides_to_guide_data(image)
+  ##grab selection bounding box values
+  #selection = pdb.gimp_selection_bounds(image);
 
-  x1 = selection[1];
-  y1 = selection[2];
-  x2 = selection[3];
-  y2 = selection[4];
+  #x1 = selection[1];
+  #y1 = selection[2];
+  #x2 = selection[3];
+  #y2 = selection[4];
 
-  #adds a new path
-  if (len(vertical_guides) > 0) or (len(horizontal_guides) > 0): #if there is at least one guide defined we create a path
+  ##adds a new path
+  #if (len(vertical_guides) > 0) or (len(horizontal_guides) > 0): #if there is at least one guide defined we create a path
 
-      all_vertical_points = sorted(set(vertical_guides + [x1,x2]))
-      all_horizontal_points = sorted(set(horizontal_guides + [y1,y2]))
+  #    all_vertical_points = sorted(set(vertical_guides + [x1,x2]))
+  #    all_horizontal_points = sorted(set(horizontal_guides + [y1,y2]))
 
-	  #draw vertical lines
-      for ix in range(0,len(vertical_guides)):
-            drawable = image.new_layer("vertical_line")
-            for iy in range(0,len(all_horizontal_points)-1):
-                draw_pencil_lines(drawable, newline(vertical_guides[ix],all_horizontal_points[iy],vertical_guides[ix],all_horizontal_points[iy+1]))
+	 # #draw vertical lines
+  #    for ix in range(0,len(vertical_guides)):
+  #          drawable = image.new_layer("vertical_line")
+  #          for iy in range(0,len(all_horizontal_points)-1):
+  #              draw_pencil_lines(drawable, newline(vertical_guides[ix],all_horizontal_points[iy],vertical_guides[ix],all_horizontal_points[iy+1]))
 
-	  #draw horizontal lines
-      for iy in range(0,len(horizontal_guides)):
-            drawable = image.new_layer("horizontal_line")
-            for ix in range(0,len(all_vertical_points)-1):
-                draw_pencil_lines(drawable, newline(all_vertical_points[ix],horizontal_guides[iy],all_vertical_points[ix+1],horizontal_guides[iy]))
+	 # #draw horizontal lines
+  #    for iy in range(0,len(horizontal_guides)):
+  #          drawable = image.new_layer("horizontal_line")
+  #          for ix in range(0,len(all_vertical_points)-1):
+  #              draw_pencil_lines(drawable, newline(all_vertical_points[ix],horizontal_guides[iy],all_vertical_points[ix+1],horizontal_guides[iy]))
 
-      target_photo_size = float(abs(vertical_guides[0]-vertical_guides[1]))
-      target_real_size = (real_size / float(photo_size)) * target_photo_size
+  #    target_photo_size = float(abs(vertical_guides[0]-vertical_guides[1]))
+  #    target_real_size = (real_size / float(photo_size)) * target_photo_size
 
-      file_name = pdb.gimp_image_get_filename(image)
-      add_text(image, str(round(target_real_size, 1)) + ' mm.') 
-      with open(r"C:\test.csv", 'a') as file: 
-            file.writelines(file_name + ';'+ str(target_real_size) + '\n') 
-  else:
-        gimp.message('No guides on image')
+  #    file_name = pdb.gimp_image_get_filename(image)
+  #    add_text(image, str(round(target_real_size, 1)) + ' mm.') 
+  #    with open(r"C:\test.csv", 'a') as file: 
+  #          file.writelines(file_name + ';'+ str(target_real_size) + '\n') 
+  #else:
+  #      gimp.message('No guides on image')
 
 
-  add_text(image, str(real_size) + 'mm.')
+
+  # get info from vectors
+  vectors = pdb.gimp_image_get_active_vectors(image)
+  strokes_num, strokes = pdb.gimp_vectors_get_strokes(vectors)
+  stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, strokes[0])
+  c_len = len(cpoints)
+
+  draw_pencil_lines(drawable, newline(cpoints[0], cpoints[1], cpoints[c_len-2], cpoints[c_len-1]))
+  photo_size = pdb.gimp_vectors_stroke_get_length(vectors, strokes[1], 1)
+  gimp.message(str(real_size) + ' '+str(photo_size))
+  target_photo_size = float(abs(cpoints[0] - cpoints[c_len-2]))
+  target_real_size = (real_size / float(photo_size)) * target_photo_size
   
+  #pdb.gimp_image_remove_vectors(image, vectors)
+
+  file_name = pdb.gimp_image_get_filename(image)
+  add_text(image, str(round(target_real_size, 1)) + ' mm.') 
+  with open(r"C:\test.csv", 'a') as file: 
+      file.writelines(file_name + ';'+ str(target_real_size) + '\n') 
+ 
   # Обновляем изоборажение на дисплее
   pdb.gimp_displays_flush()
   # Разрешаем запись информации для отмены действий
@@ -148,7 +166,8 @@ register(
           [
               (PF_IMAGE, "image", "Исходное изображение", None), # Указатель на изображение
               (PF_DRAWABLE, "drawable", "Исходный слой", None), # Указатель на слой
-              (PF_INT, "real_size", "Реальный размер объекта (mm.)", "10"), # Реальный размер объекта  в милиметрах
+              (PF_INT, "real_size", "Реальный размер объекта (mm.)", "255"), # Реальный размер объекта  в милиметрах
+              (PF_INT, "photo_size", "Размер объекта на фото в пикселях (точки растра)", "10"), # Размер объекта на фото в пикселях (точки растра)
               (PF_COLOR, "border_color",  "Цвет разметки", (39,221,65)) # Цвет разметки
               
           ],
