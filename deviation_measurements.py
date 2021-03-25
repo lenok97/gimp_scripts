@@ -98,8 +98,8 @@ def add_colored_border(image, drawable, real_size, border_color):
 
   #adds a new path
   if (len(vertical_guides) > 0) or (len(horizontal_guides) > 0): #if there is at least one guide defined we create a path
-      new_vectors = pdb.gimp_vectors_new(image,"guides vectors")
-      pdb.gimp_image_insert_vectors(image,new_vectors,None,-1)
+      #new_vectors = pdb.gimp_vectors_new(image,"guides vectors") # vectors
+      #pdb.gimp_image_insert_vectors(image,new_vectors,None,-1) # vectors
 
       all_vertical_points = sorted(set(vertical_guides + [x1,x2]))
       all_horizontal_points = sorted(set(horizontal_guides + [y1,y2]))
@@ -110,17 +110,16 @@ def add_colored_border(image, drawable, real_size, border_color):
             drawable = image.new_layer("vertical_line")
             for iy in range(0,len(all_horizontal_points)-1):
                 draw_pencil_lines(drawable, newline(vertical_guides[ix],all_horizontal_points[iy],vertical_guides[ix],all_horizontal_points[iy+1]))
-                  
-                #pdb.gimp_vectors_stroke_new_from_points(new_vectors,0,12,newline(vertical_guides[ix],all_horizontal_points[iy],vertical_guides[ix],all_horizontal_points[iy+1]),0);
+                # pdb.gimp_vectors_stroke_new_from_points(new_vectors,0,12,newline(vertical_guides[ix],all_horizontal_points[iy],vertical_guides[ix],all_horizontal_points[iy+1]),0); # vectors
 
 		#draw horizontal lines
       for iy in range(0,len(horizontal_guides)):
             drawable = image.new_layer("horizontal_line")
             for ix in range(0,len(all_vertical_points)-1):
                 draw_pencil_lines(drawable, newline(all_vertical_points[ix],horizontal_guides[iy],all_vertical_points[ix+1],horizontal_guides[iy]))
-                #pdb.gimp_vectors_stroke_new_from_points(new_vectors,0,12,newline(all_vertical_points[ix],horizontal_guides[iy],all_vertical_points[ix+1],horizontal_guides[iy]),0);
+                #pdb.gimp_vectors_stroke_new_from_points(new_vectors,0,12,newline(all_vertical_points[ix],horizontal_guides[iy],all_vertical_points[ix+1],horizontal_guides[iy]),0); # vectors
 
-      pdb.gimp_item_set_visible(new_vectors,1);
+      #pdb.gimp_item_set_visible(new_vectors, 1)  # vectors
 
 
 
