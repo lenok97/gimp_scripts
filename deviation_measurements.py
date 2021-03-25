@@ -68,8 +68,11 @@ def add_text(image, text, points = 100, antialias = False, letter_spacing = -3, 
     pdb.gimp_context_pop();
 
 # https://github.com/iwabuchiken/WS_Others.Art-deprecated.20190617_174059-/blob/fe2dad57431304497cc69bcaccb14a5004dea72d/JVEMV6/46_art/2_image-prog/1_gimp/4_/plugin_2_1_4.py
-def draw_pencil_lines(drawable, lines):
-  pdb.gimp_pencil(drawable, len(lines), lines)
+def draw_pencil_lines(drawable, lines, width = 10, color = gimpcolor.RGB(39,221,65)):
+    pdb.gimp_context_set_foreground(color)
+    pdb.gimp_context_set_brush_size(width)
+    #pdb.gimp_paintbrush_default(drawable, len(lines), lines)
+    pdb.gimp_pencil(drawable, len(lines), lines)
   
 def draw_rect(drawable, x1, y1, x2, y2):
   lines = [x1, y1, x2, y1, x2, y2, x1, y2, x1, y1]
