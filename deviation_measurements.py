@@ -85,7 +85,7 @@ def add_text(image, text, points = 100, antialias = False, letter_spacing = -3, 
     
     pdb.gimp_text_layer_set_color(text_layer, color)
     pdb.gimp_text_layer_set_text(text_layer, text)
-    pdb.gimp_item_set_name(text_layer, "Watermark")
+    pdb.gimp_item_set_name(text_layer, "text")
     pdb.gimp_layer_set_offsets(text_layer, x, y)
     pdb.gimp_text_layer_set_letter_spacing(text_layer, letter_spacing)
     
@@ -115,11 +115,11 @@ def add_colored_border(image, drawable, real_size, photo_size, border_color):
   strokes_num, strokes = pdb.gimp_vectors_get_strokes(vectors)
   stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, strokes[0])
   c_len = len(cpoints)
-
+  drawable = image.new_layer('hypotenuse')
   draw_pencil_lines(drawable, newline(cpoints[0], cpoints[1], cpoints[c_len-2], cpoints[c_len-1]))
+  # CHECK !!!
   photo_size = pdb.gimp_vectors_stroke_get_length(vectors, strokes[1], 1)
-
-  target_photo_size = float(abs(cpoints[0] - cpoints[c_len-2]))
+  target_photo_size = float(abs(float(cpoints[0]) - cpoints[c_len-2]))
   target_real_size = (real_size / float(photo_size)) * target_photo_size
   
   #pdb.gimp_image_remove_vectors(image, vectors)
