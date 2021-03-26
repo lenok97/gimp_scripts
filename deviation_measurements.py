@@ -11,6 +11,15 @@ import getpass
 SIZE_IN_PIXELS = 0
 SIZE_IN_POINTS = 1
 
+
+def write_to_file(file_name, line):
+    try:
+        with open(file_name, 'a') as file: 
+            file.writelines(line + '\n') 
+    except Exception:
+      gimp.message('Can not write results to '+ file_name + '\n Restart Gimp in admin mode and close the file in other programs')
+
+
 #https://github.com/VegetarianZombie/gimp-text-outliner/blob/bc4ffbdebd06e8610144767c4d28111660c5b730/text-outliner.py
 # Adds a new layer beneath the given layer. Return value is the new layer
 def add_new_layer_beneath(image, layer):
@@ -131,35 +140,34 @@ def add_deviation_layout(image, drawable, real_size):
   y = [cpoints[1], cpoints[c_len-1]]
 
   pencil_width = int (100 * photo_size /image.width)
-  if pencil_width < 2:
-      pencil_width = 2
+  if pencil_width < 1:
+      pencil_width = 1
   drawable = image.new_layer('hypotenuse')
-  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[1]), width= pencil_width, color = gimpcolor.RGB(0,255,0))
+  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[1]), width = pencil_width, color = gimpcolor.RGB(0,255,0))
 
   # CHECK !!!
   x.sort(reverse = False)
   y.sort(reverse = True)
 
   drawable = image.new_layer('small_leg')
-  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[0]), width= pencil_width, color = gimpcolor.RGB(255,0,0))
+  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[0]), width = pencil_width, color = gimpcolor.RGB(255,0,0))
   drawable = image.new_layer('big_leg')
-  draw_pencil_lines(drawable, newline(x[1], y[1], x[1], y[0]), width= pencil_width, color = gimpcolor.RGB(0,255,0))
+  draw_pencil_lines(drawable, newline(x[1], y[1], x[1], y[0]), width = pencil_width, color = gimpcolor.RGB(0,255,0))
   
   target_photo_size = float(abs(float(cpoints[0]) - cpoints[c_len-2]))
   target_real_size = (real_size / float(photo_size)) * target_photo_size
   
+  add_text(image, str(round(target_real_size, 1)) + ' mm.') 
+  img_name = pdb.gimp_image_get_filename(image)
+  
+  write_to_file(r"C:\test.csv", img_name + ';'+ str(target_real_size))
   #pdb.gimp_image_remove_vectors(image, vectors)
 
-  file_name = pdb.gimp_image_get_filename(image)
-  add_text(image, str(round(target_real_size, 1)) + ' mm.') 
+  pdb.gimp_displays_flush()
+  # undo-end
+  pdb.gimp_image_undo_group_end(image)
+  pdb.gimp_context_pop()
   
-  try:
-     out_file = r"C:\test.csv"
-     with open(out_file, 'a') as file: 
-         file.writelines(file_name + ';'+ str(target_real_size) + '\n') 
-  except Exception:
-      gimp.message('Can not write results to '+out_file + '\n Restart Gimp in admin mode and close the file in other programs')
-      
   pdb.gimp_displays_flush()
   # undo-end
   pdb.gimp_image_undo_group_end(image)
