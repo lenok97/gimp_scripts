@@ -105,7 +105,6 @@ def draw_pencil_lines(drawable, lines, width = 10, color = gimpcolor.RGB(0,0,0))
 def newline(x1,y1,x2,y2):
 	return [x1,y1,x1,y1,x1,y1,x2,y2,x2,y2,x2,y2];
 
-def add_colored_border(image, drawable, real_size, photo_size, border_color):
 def add_deviation_layout(image, drawable, real_size):
   pdb.gimp_context_push()
   #undo-start
