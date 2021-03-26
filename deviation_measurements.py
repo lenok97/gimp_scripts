@@ -167,11 +167,57 @@ def add_deviation_layout(image, drawable, real_size):
   # undo-end
   pdb.gimp_image_undo_group_end(image)
   pdb.gimp_context_pop()
+
+def get_angle (p1, p2):
+    x1, y1 = p1
+    x2, y2 = p2
+    dX = x2 - x1
+    dY = y2 - y1
+    rads = math.atan2(-dY, dX) #wrong for finding angle/declination?
+    return math.degrees(rads)
+
+
+def add_angle_layout(image, drawable):
+  pdb.gimp_context_push()
+  #undo-start
+  pdb.gimp_image_undo_group_start(image)
+
+   #get info from vectors
+  vectors = pdb.gimp_image_get_active_vectors(image)
+  strokes_num, strokes = pdb.gimp_vectors_get_strokes(vectors)
+  stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, strokes[0])
   
+  gimp.message(str(len(cpoints)))
+  c_len = len(cpoints)
+  x = [cpoints[0], cpoints[c_len-2]]
+  y = [cpoints[1], cpoints[c_len-1]]
+
+  pencil_width = int (100 * 5 /image.width)
+  if pencil_width < 1:
+      pencil_width = 1
+
+  drawable = image.new_layer('hypotenuse')
+  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[1]), width = pencil_width, color = gimpcolor.RGB(255,0,0))
+  angle = abs(90 - abs(get_angle([x[1], y[0]], [x[0], y[1]])))
+  gimp.message(str(x))
+  gimp.message(str(y))
+  # CHECK !!!
+  x.sort(reverse = False)
+  y.sort(reverse = True)
+
+  drawable = image.new_layer('big_leg')
+  draw_pencil_lines(drawable, newline(x[1], y[1], x[1], y[0]), width = pencil_width, color = gimpcolor.RGB(0,255,0))
+
+
+  add_text(image, str(round(angle, 2)) + '°') 
+  img_name = pdb.gimp_image_get_filename(image)
+  write_to_file(r"C:\test.csv", img_name + ';'+ str(round(angle, 2)))
+
   pdb.gimp_displays_flush()
   # undo-end
   pdb.gimp_image_undo_group_end(image)
   pdb.gimp_context_pop()
+
 
 # Регистрируем функции в PDB
 register(
@@ -190,6 +236,22 @@ register(
           ],
           [], # Список переменных которые вернет дополнение
           add_deviation_layout, menu="<Image>/Deviation measurements/") # Имя исходной функции и меню в которое будет помещён пункт запускающий дополнение
+
+register(
+          "python-fu-add-angle-layout", # Имя регистрируемой функции
+          "Добавление размеров объекта", # Информация о дополнении
+          "Позволяет измерить объект, используя какой-то известный размер другого объекта на фото. Наносит разметку с размером на изображение и записывает результат в файл", # Короткое описание выполняемых скриптом действий
+          "Lena Kolos", # Информация об авторе
+          "Lena Kolos (koloslena97@gmail.com)", # Информация о копирайте (копилефте?)
+          "22.03.2021", # Дата изготовления
+          "Измерение углов", # Название пункта меню, с помощью которого дополнение будет запускаться
+          "*", # Типы изображений с которыми может работать дополнение
+          [
+              (PF_IMAGE, "image", "Исходное изображение", None), # Указатель на изображение
+              (PF_DRAWABLE, "drawable", "Исходный слой", None), # Указатель на слой
+          ],
+          [], # Список переменных которые вернет дополнение
+          add_angle_layout, menu="<Image>/Deviation measurements/") # Имя исходной функции и меню в которое будет помещён пункт запускающий дополнение
 
 # Запускаем скрипт
 main()
