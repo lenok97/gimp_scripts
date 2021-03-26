@@ -192,26 +192,31 @@ def add_angle_layout(image, drawable):
   x = [cpoints[0], cpoints[c_len-2]]
   y = [cpoints[1], cpoints[c_len-1]]
 
-  pencil_width = int (100 * 5 /image.width)
+  x1y1 = [cpoints[0], cpoints[1]]
+  x2y2 = [cpoints[c_len-2], cpoints[c_len-1]]
+
+  pencil_width = int (1000 /image.width)
   if pencil_width < 1:
       pencil_width = 1
 
   drawable = image.new_layer('hypotenuse')
-  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[1]), width = pencil_width, color = gimpcolor.RGB(255,0,0))
-  angle = abs(90 - abs(get_angle([x[1], y[0]], [x[0], y[1]])))
-  gimp.message(str(x))
-  gimp.message(str(y))
-  # CHECK !!!
-  x.sort(reverse = False)
-  y.sort(reverse = True)
+  draw_pencil_lines(drawable, newline(x1y1[0], x1y1[1], x2y2[0], x2y2[1]), width = pencil_width, color = gimpcolor.RGB(255,0,0))
+  angle = abs(90 - abs(get_angle([x2y2[0], x1y1[1]], [x1y1[0], x2y2[1]])))
 
   drawable = image.new_layer('big_leg')
-  draw_pencil_lines(drawable, newline(x[1], y[1], x[1], y[0]), width = pencil_width, color = gimpcolor.RGB(0,255,0))
+  if (x2y2[1] < x1y1[1]):
+      draw_pencil_lines(drawable, newline(x2y2[0], x2y2[1], x2y2[0], x1y1[1]), width = pencil_width, color = gimpcolor.RGB(0,255,0))
+  else:
+      draw_pencil_lines(drawable, newline(x1y1[0], x1y1[1], x1y1[0], x2y2[1]), width = pencil_width, color = gimpcolor.RGB(0,255,0))
+  # draw_pencil_lines(drawable, newline(x[0], y[0], x[0], y[1]), width = pencil_width, color = gimpcolor.RGB(0,255,0))
 
 
   add_text(image, str(round(angle, 2)) + '°') 
   img_name = pdb.gimp_image_get_filename(image)
   write_to_file(r"C:\test.csv", img_name + ';'+ str(round(angle, 2)))
+
+  gimp.message(str(x))
+  gimp.message(str(y))
 
   pdb.gimp_displays_flush()
   # undo-end
