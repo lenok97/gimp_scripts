@@ -113,12 +113,38 @@ def add_deviation_layout(image, drawable, real_size):
   # get info from vectors
   vectors = pdb.gimp_image_get_active_vectors(image)
   strokes_num, strokes = pdb.gimp_vectors_get_strokes(vectors)
-  stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, strokes[0])
+
+  str0_size = pdb.gimp_vectors_stroke_get_length(vectors, strokes[0], 1)
+  str1_size = pdb.gimp_vectors_stroke_get_length(vectors, strokes[1], 1)
+
+  if (str0_size >= str1_size):
+      hypotenuse_stroke = strokes[0]
+      photo_size = str1_size
+  else:
+      hypotenuse_stroke = strokes[1]
+      photo_size = str0_size
+
+  stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, hypotenuse_stroke)
   c_len = len(cpoints)
+  
+  x = [cpoints[0], cpoints[c_len-2]]
+  y = [cpoints[1], cpoints[c_len-1]]
+
+  pencil_width = int (100 * photo_size /image.width)
+  if pencil_width < 2:
+      pencil_width = 2
   drawable = image.new_layer('hypotenuse')
-  draw_pencil_lines(drawable, newline(cpoints[0], cpoints[1], cpoints[c_len-2], cpoints[c_len-1]), color = gimpcolor.RGB(255,0,0))
+  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[1]), width= pencil_width, color = gimpcolor.RGB(0,255,0))
+
   # CHECK !!!
-  photo_size = pdb.gimp_vectors_stroke_get_length(vectors, strokes[1], 1)
+  x.sort(reverse = False)
+  y.sort(reverse = True)
+
+  drawable = image.new_layer('small_leg')
+  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[0]), width= pencil_width, color = gimpcolor.RGB(255,0,0))
+  drawable = image.new_layer('big_leg')
+  draw_pencil_lines(drawable, newline(x[1], y[1], x[1], y[0]), width= pencil_width, color = gimpcolor.RGB(0,255,0))
+  
   target_photo_size = float(abs(float(cpoints[0]) - cpoints[c_len-2]))
   target_real_size = (real_size / float(photo_size)) * target_photo_size
   
