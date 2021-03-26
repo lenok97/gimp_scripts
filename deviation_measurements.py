@@ -127,9 +127,14 @@ def add_deviation_layout(image, drawable, real_size):
 
   file_name = pdb.gimp_image_get_filename(image)
   add_text(image, str(round(target_real_size, 1)) + ' mm.') 
-  with open(r"C:\test.csv", 'a') as file: 
-      file.writelines(file_name + ';'+ str(target_real_size) + '\n') 
- 
+  
+  try:
+     out_file = r"C:\test.csv"
+     with open(out_file, 'a') as file: 
+         file.writelines(file_name + ';'+ str(target_real_size) + '\n') 
+  except Exception:
+      gimp.message('Can not write results to '+out_file + '\n Restart Gimp in admin mode and close the file in other programs')
+      
   pdb.gimp_displays_flush()
   # undo-end
   pdb.gimp_image_undo_group_end(image)
