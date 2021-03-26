@@ -132,24 +132,23 @@ def add_deviation_layout(image, drawable, real_size):
   # draw hypotenuse using coordinates of stroke points
   stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, hypotenuse_stroke)
   c_len = len(cpoints)
-  
-  x = [cpoints[0], cpoints[c_len-2]]
-  y = [cpoints[1], cpoints[c_len-1]]
+
+  start_pos = [cpoints[0], cpoints[1]]
+  end_pos = [cpoints[c_len-2], cpoints[c_len-1]]
 
   pencil_width = int (100 * photo_size /image.width)
   if pencil_width < 1:
       pencil_width = 1
   drawable = image.new_layer('hypotenuse')
-  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[1]), width = pencil_width, color = gimpcolor.RGB(0,255,0))
-
-  # CHECK !!!
-  x.sort(reverse = False)
-  y.sort(reverse = True)
+  draw_pencil_lines(drawable, newline(start_pos[0], start_pos[1], end_pos[0], end_pos[1]), 
+                    width = pencil_width, color = gimpcolor.RGB(0,255,0))
 
   drawable = image.new_layer('small_leg')
-  draw_pencil_lines(drawable, newline(x[0], y[0], x[1], y[0]), width = pencil_width, color = gimpcolor.RGB(255,0,0))
+  draw_pencil_lines(drawable, newline(start_pos[0], end_pos[1], end_pos[0], end_pos[1]), 
+                    width = pencil_width, color = gimpcolor.RGB(255,0,0))
   drawable = image.new_layer('big_leg')
-  draw_pencil_lines(drawable, newline(x[1], y[1], x[1], y[0]), width = pencil_width, color = gimpcolor.RGB(0,255,0))
+  draw_pencil_lines(drawable, newline(start_pos[0], start_pos[1], start_pos[0], end_pos[1]), 
+                    width = pencil_width, color = gimpcolor.RGB(0,255,0))
   
   target_photo_size = float(abs(float(cpoints[0]) - cpoints[c_len-2]))
   scale_factor = (real_size / float(photo_size)) #reality/photo scale factor
