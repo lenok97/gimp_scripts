@@ -102,7 +102,7 @@ def add_layer_into_group(image, layer_name, group, pos = 1):
   return drawable
 
 
-def add_deviation_layout(image, drawable, real_size):
+def add_deviation_layout(image, drawable, real_size, save_file):
   pdb.gimp_context_push()
   #undo-start
   pdb.gimp_image_undo_group_start(image)
@@ -166,11 +166,25 @@ def add_deviation_layout(image, drawable, real_size):
            points = int (0.05 * image.width))
   img_name = pdb.gimp_image_get_filename(image)
   
-  write_to_file(r"C:\test.csv", img_name + ';'+ str(target_real_size))
-  #pdb.gimp_image_remove_vectors(image, vectors)
-
+  write_to_file(r"C:\test.csv", img_name + ';'+ str(target_real_size)+ ';mm.')
+  
   pdb.gimp_displays_flush()
   # undo-end
+  pdb.gimp_image_undo_group_end(image)
+  pdb.gimp_context_pop()
+  if (save_file):
+      ex = '.' + img_name.split('.')[-1]
+      out_file = img_name.replace(ex, '') + '_deviation'
+      merge_and_export(image, out_file)
+  #pdb.gimp_image_remove_vectors(image, vectors)
+
+def merge_and_export(image, out_file):
+  pdb.gimp_context_push()
+  #undo-start
+  pdb.gimp_image_undo_group_start(image)
+  result = pdb.gimp_image_merge_visible_layers(image, 0)
+  pdb.file_png_save(image, result, out_file+'.png', image.name, 0,9,1,1,1,1,1)
+  pdb.gimp_displays_flush()
   pdb.gimp_image_undo_group_end(image)
   pdb.gimp_context_pop()
 
@@ -184,7 +198,7 @@ def get_angle (p1, p2):
     return math.degrees(rads)
 
 
-def add_angle_layout(image, drawable):
+def add_angle_layout(image, drawable, save_file):
   pdb.gimp_context_push()
   #undo-start
   pdb.gimp_image_undo_group_start(image)
@@ -228,7 +242,7 @@ def add_angle_layout(image, drawable):
            points = int (0.05 * image.width))
  
   img_name = pdb.gimp_image_get_filename(image)
-  write_to_file(r"C:\test.csv", img_name + ';'+ str(round(angle, 1)))
+  write_to_file(r"C:\test.csv", img_name + ';'+ str(round(angle, 1))+ ';degrees')
 
   #pdb.gimp_image_remove_vectors(image, vectors)
 
@@ -236,6 +250,12 @@ def add_angle_layout(image, drawable):
   # undo-end
   pdb.gimp_image_undo_group_end(image)
   pdb.gimp_context_pop()
+
+  if (save_file):
+      ex = '.'+img_name.split('.')[-1]
+      out_file = img_name.replace(ex, '') + '_angle'
+      merge_and_export(image, out_file)
+
 
 # Регистрируем функции в PDB
 register(
@@ -250,7 +270,8 @@ register(
           [
               (PF_IMAGE, "image", "Исходное изображение", None), # Указатель на изображение
               (PF_DRAWABLE, "drawable", "Исходный слой", None), # Указатель на слой
-              (PF_FLOAT, "real_size", "Реальный размер объекта (mm.)", "255"), # Реальный размер объекта  в милиметрах
+              (PF_FLOAT, "real_size", "Реальный размер объекта (mm.)", 255), # Реальный размер объекта  в милиметрах
+              (PF_BOOL, "save_file", "Экспортировать результат?", True), # Сохранить ли файл
           ],
           [], # Список переменных которые вернет дополнение
           add_deviation_layout, menu="<Image>/Deviation measurements/") # Имя исходной функции и меню в которое будет помещён пункт запускающий дополнение
@@ -267,6 +288,7 @@ register(
           [
               (PF_IMAGE, "image", "Исходное изображение", None), # Указатель на изображение
               (PF_DRAWABLE, "drawable", "Исходный слой", None), # Указатель на слой
+              (PF_BOOL, "save_file", "Экспортировать результат?", True), # Сохранить ли файл
           ],
           [], # Список переменных которые вернет дополнение
           add_angle_layout, menu="<Image>/Deviation measurements/") # Имя исходной функции и меню в которое будет помещён пункт запускающий дополнение
