@@ -22,21 +22,18 @@ def write_to_file(file_name, line):
 
 #https://github.com/VegetarianZombie/gimp-text-outliner/blob/bc4ffbdebd06e8610144767c4d28111660c5b730/text-outliner.py
 # Adds a new layer beneath the given layer. Return value is the new layer
-def add_new_layer_beneath(image, layer):
+def add_new_layer_beneath(image, layer, parent = None):
 	# Get the layer position.
 	pos = 0;
 	for i in range(len(image.layers)):
 		if(image.layers[i] == layer):
 			pos = i
-	
 	if image.base_type is RGB:
 		type = RGBA_IMAGE
 	else:
 		type = GRAYA_IMAGE
-		
 	# Add a new layer below the selected one
-	new_layer = gimp.Layer(image, "text outline", image.width, image.height, type, 100, NORMAL_MODE)
-	image.add_layer(new_layer, pos+1)	
+	new_layer = add_layer_into_group(image, 'text outline',  parent, pos + 2)
 	return new_layer
 
 # Selects the contents of the given layer, then grows it by "thickness"
@@ -44,10 +41,8 @@ def add_new_layer_beneath(image, layer):
 def create_selection(image, layer, thickness, feather):
 	# Select the text
 	pdb.gimp_selection_layer_alpha(layer)
-	
 	# Grow the selection
 	pdb.gimp_selection_grow(image, thickness)
-	
 	# Feather it
 	if (feather > 0):
 		pdb.gimp_selection_feather(image, feather)		
@@ -65,9 +60,8 @@ def fill_selection(layer, color):
 	pdb.gimp_palette_set_foreground(old_fg)	
 
 
-def add_text_outline(image, layer, thickness, feather):
-	gimp.progress_init("Drawing outline around text")
-	new_layer = add_new_layer_beneath(image, layer)
+def add_text_outline(image, layer, thickness, feather, parent):
+	new_layer = add_new_layer_beneath(image, layer, parent)
 	create_selection(image, layer, thickness, feather)
 	fill_selection(new_layer, gimpcolor.RGB(0,0,0))	
 	pdb.gimp_selection_none(image)
@@ -75,29 +69,20 @@ def add_text_outline(image, layer, thickness, feather):
 
 
 # https://github.com/eib/gimp-plugins/blob/8c8a2ef70975d793685ec7fc5de743f3ebcadb0a/add_watermark_text.py
-def add_text(image, text, points = 100, antialias = False, letter_spacing = -3, fontname = "Sans", color = (255, 255, 255)):
-    x = 0
-    y = 0
-    border = -1
-    watermark_shadow_opacity = 60.0
-
+def add_text(image, text, parent, points = 100, pos = [0,0], antialias = False, letter_spacing = -3, fontname = "Sans", color = (255, 255, 255)):
     #create text-layer (adds it to the image)
-    text_layer = pdb.gimp_text_fontname(image, None, x, y, text, border, antialias, points, SIZE_IN_POINTS, fontname)
-    
-    layer_margins = 5
-    x = image.width/2 
-    y = image.height/2 - text_layer.height - layer_margins 
+    border = -1
+    text_layer = pdb.gimp_text_fontname(image, add_layer_into_group(image, 'text', parent, pos = 0), 
+                                        pos[0], pos[1], text, border, antialias, points, SIZE_IN_POINTS, fontname)
     
     pdb.gimp_text_layer_set_color(text_layer, color)
     pdb.gimp_text_layer_set_text(text_layer, text)
     pdb.gimp_item_set_name(text_layer, "text")
-    pdb.gimp_layer_set_offsets(text_layer, x, y)
     pdb.gimp_text_layer_set_letter_spacing(text_layer, letter_spacing)
-    
     # add outline
     thickness = 2 
     feather = 2
-    add_text_outline(image, text_layer, thickness, feather)
+    add_text_outline(image, text_layer, thickness, feather, parent)
 
 
 # https://github.com/iwabuchiken/WS_Others.Art-deprecated.20190617_174059-/blob/fe2dad57431304497cc69bcaccb14a5004dea72d/JVEMV6/46_art/2_image-prog/1_gimp/4_/plugin_2_1_4.py
@@ -106,8 +91,16 @@ def draw_pencil_lines(drawable, lines, width = 10, color = gimpcolor.RGB(0,0,0))
     pdb.gimp_context_set_brush_size(width)
     pdb.gimp_pencil(drawable, len(lines), lines)
   
+
 def newline(x1,y1,x2,y2):
 	return [x1,y1,x1,y1,x1,y1,x2,y2,x2,y2,x2,y2];
+
+
+def add_layer_into_group(image, layer_name, group, pos = 1):
+  drawable = gimp.Layer(image, layer_name, image.width, image.height, RGBA_IMAGE, 100, NORMAL_MODE)
+  pdb.gimp_image_insert_layer(image, drawable, group, pos)
+  return drawable
+
 
 def add_deviation_layout(image, drawable, real_size):
   pdb.gimp_context_push()
@@ -136,25 +129,41 @@ def add_deviation_layout(image, drawable, real_size):
   start_pos = [cpoints[0], cpoints[1]]
   end_pos = [cpoints[c_len-2], cpoints[c_len-1]]
 
-  pencil_width = int (100 * photo_size /image.width)
+  group = pdb.gimp_layer_group_new(image)
+  pdb.gimp_item_set_name(group, 'deviation_layout')
+  pdb.gimp_image_insert_layer(image, group, None, 0)
+
+  pencil_width = int (10 / photo_size)
   if pencil_width < 1:
       pencil_width = 1
-  drawable = image.new_layer('hypotenuse')
-  draw_pencil_lines(drawable, newline(start_pos[0], start_pos[1], end_pos[0], end_pos[1]), 
+  
+  draw_pencil_lines(add_layer_into_group(image, 'hypotenuse', group), 
+                    newline(start_pos[0], start_pos[1], end_pos[0], end_pos[1]), 
                     width = pencil_width, color = gimpcolor.RGB(0,255,0))
 
-  drawable = image.new_layer('small_leg')
-  draw_pencil_lines(drawable, newline(start_pos[0], end_pos[1], end_pos[0], end_pos[1]), 
+  draw_pencil_lines(add_layer_into_group(image, 'small_leg', group), 
+                    newline(start_pos[0], end_pos[1], end_pos[0], end_pos[1]), 
                     width = pencil_width, color = gimpcolor.RGB(255,0,0))
-  drawable = image.new_layer('big_leg')
-  draw_pencil_lines(drawable, newline(start_pos[0], start_pos[1], start_pos[0], end_pos[1]), 
+
+  draw_pencil_lines(add_layer_into_group(image, 'small_leg_', group), 
+                    newline(start_pos[0], start_pos[1], end_pos[0], start_pos[1]), 
+                    width = pencil_width, color = gimpcolor.RGB(255,0,0))
+
+  draw_pencil_lines(add_layer_into_group(image, 'big_leg', group), 
+                    newline(start_pos[0], start_pos[1], start_pos[0], end_pos[1]), 
                     width = pencil_width, color = gimpcolor.RGB(0,255,0))
-  
+
+  draw_pencil_lines(add_layer_into_group(image, 'big_leg_', group), 
+                    newline(end_pos[0], start_pos[1], end_pos[0], end_pos[1]), 
+                    width = pencil_width, color = gimpcolor.RGB(0,255,0))
+
   target_photo_size = float(abs(float(cpoints[0]) - cpoints[c_len-2]))
   scale_factor = (real_size / float(photo_size)) #reality/photo scale factor
   target_real_size = scale_factor * float(target_photo_size)
   
-  add_text(image, str(round(target_real_size, 1)) + ' mm.') 
+  add_text(image, str(round(target_real_size, 1)) + ' mm.', group, 
+           pos = [int(float(start_pos[0]) + end_pos[0])/2, int(float(start_pos[1]) + end_pos[1])/2],
+           points = int (0.05 * image.width))
   img_name = pdb.gimp_image_get_filename(image)
   
   write_to_file(r"C:\test.csv", img_name + ';'+ str(target_real_size))
@@ -194,24 +203,30 @@ def add_angle_layout(image, drawable):
   if pencil_width < 1:
       pencil_width = 1
 
-  drawable = image.new_layer('hypotenuse')
-  draw_pencil_lines(drawable, newline(start_pos[0], start_pos[1], end_pos[0], end_pos[1]), 
+  group = pdb.gimp_layer_group_new(image)
+  pdb.gimp_item_set_name(group, 'angle_layout')
+  pdb.gimp_image_insert_layer(image, group, None, 0)
+
+  draw_pencil_lines(add_layer_into_group(image, 'hypotenuse', group), 
+                    newline(start_pos[0], start_pos[1], end_pos[0], end_pos[1]), 
                     width = pencil_width, color = gimpcolor.RGB(255,0,0))
   angle = abs(90 - abs(get_angle([end_pos[0], start_pos[1]], [start_pos[0], end_pos[1]])))
   
   # get position to draw vertical line
-  drawable = image.new_layer('vertical_line')
   start_line_pos = start_pos
   end_line_pos = end_pos
   if (end_pos[1] < start_pos[1]):
       start_line_pos = end_pos
       end_line_pos = start_pos
 
-  draw_pencil_lines(drawable, 
+  draw_pencil_lines(add_layer_into_group(image, 'vertical_line', group), 
                     newline(start_line_pos[0], start_line_pos[1], start_line_pos[0], end_line_pos[1]), 
                     width = pencil_width, color = gimpcolor.RGB(0,255,0))
 
-  add_text(image, str(round(angle, 1)) + '°') 
+  add_text(image, str(round(angle, 1)) + '°', group,
+           pos = [int(float(start_pos[0]) + end_pos[0])/2, int(float(start_pos[1]) + end_pos[1])/2],
+           points = int (0.05 * image.width))
+ 
   img_name = pdb.gimp_image_get_filename(image)
   write_to_file(r"C:\test.csv", img_name + ';'+ str(round(angle, 1)))
 
