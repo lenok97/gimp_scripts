@@ -101,8 +101,10 @@ def add_layer_into_group(image, layer_name, group, pos = 1):
     pdb.gimp_image_insert_layer(image, drawable, group, pos)
     return drawable
 
-def get_info_from_vectors(image):
-    return 0
+def finish_execution(image, message):
+    gimp.message(message)
+    pdb.gimp_image_undo_group_end(image)
+    pdb.gimp_context_pop()
 
 def add_deviation_layout(image, drawable, real_size, save_file):
     pdb.gimp_context_push()
@@ -112,12 +114,14 @@ def add_deviation_layout(image, drawable, real_size, save_file):
   # get info from vectors
     vectors = pdb.gimp_image_get_active_vectors(image)
     if (vectors == None):
-        gimp.message('Не обнаружено векторов. Добавьте вектора по оси гирлянды и по диаметру тарелки')
+        finish_execution (image,
+                          'Не обнаружено векторов. Добавьте вектора по оси гирлянды и по диаметру тарелки')
         return
 
     strokes_num, strokes = pdb.gimp_vectors_get_strokes(vectors)
     if (strokes_num != 2):
-        gimp.message('Неверная разметка. Для операции требуетя 2 вектора. На изображении сейчас: '+ str (strokes_num))
+        finish_execution (image,
+                          'Неверная разметка. Для операции требуетя 2 вектора. На изображении сейчас: '+ str (strokes_num))
         return
 
     # a longer stroke is hypotenuse, other is object size mark used to find out reality/photo scale factor 
@@ -134,7 +138,8 @@ def add_deviation_layout(image, drawable, real_size, save_file):
     # draw hypotenuse using coordinates of stroke points
     stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, hypotenuse_stroke)
     if (len(cpoints) / 6 != 2):
-        gimp.message('Неверная разметка. Для операции требуетя 2 точки на оси подвески. На изображении сейчас: '+ str (len(cpoints)/6))
+        finish_execution (image,
+                          'Неверная разметка. Для операции требуетя 2 точки на оси подвески. На изображении сейчас: '+ str (len(cpoints)/6))
         return
   
     c_len = len(cpoints)
@@ -222,18 +227,21 @@ def add_angle_layout(image, drawable, save_file):
     #get info from vectors
     vectors = pdb.gimp_image_get_active_vectors(image)
     if (vectors == None):
-        gimp.message('Не обнаружен вектор. Добавьте вектор по оси объекта')
+        finish_execution (image,
+                          'Не обнаружен вектор. Добавьте вектор по оси объекта')
         return
 
     strokes_num, strokes = pdb.gimp_vectors_get_strokes(vectors)
     if (strokes_num != 1):
-        gimp.message('Неверная разметка. Для операции требуетя 1 вектор. На изображении сейчас: '+ str (strokes_num))
+        finish_execution (image,
+                          'Неверная разметка. Для операции требуетя 1 вектор. На изображении сейчас: '+ str (strokes_num))
         return
 
     stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, strokes[0])
   
     if (len(cpoints) / 6 != 2):
-        gimp.message('Неверная разметка. Для операции требуетя 2 точки на оси объекта. На изображении сейчас: '+ str (len(cpoints)/6))
+        finish_execution (image,
+                          'Неверная разметка. Для операции требуетя 2 точки на оси объекта. На изображении сейчас: '+ str (len(cpoints)/6))
         return
 
     # draw hypotenuse using coordinates of stroke points
