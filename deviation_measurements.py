@@ -7,6 +7,7 @@ import string
 from gimpfu import *
 from array import array
 import getpass
+import os
 
 SIZE_IN_PIXELS = 0
 SIZE_IN_POINTS = 1
@@ -106,7 +107,7 @@ def finish_execution(image, message):
     pdb.gimp_image_undo_group_end(image)
     pdb.gimp_context_pop()
 
-def add_deviation_layout(image, drawable, real_size, save_file):
+def add_deviation_layout(image, drawable, real_size, save_file, log_file):
     pdb.gimp_context_push()
     #undo-start
     pdb.gimp_image_undo_group_start(image)
@@ -185,7 +186,7 @@ def add_deviation_layout(image, drawable, real_size, save_file):
     
     img_name = pdb.gimp_image_get_filename(image)
   
-    write_to_file(r"C:\test.csv", img_name + ';'+ str(target_real_size)+ ';mm.')
+    write_to_file(log_file, img_name + ';'+ str(target_real_size)+ ';mm.')
   
     pdb.gimp_displays_flush()
     # undo-end
@@ -219,7 +220,7 @@ def get_angle (p1, p2):
     return math.degrees(rads)
 
 
-def add_angle_layout(image, drawable, save_file):
+def add_angle_layout(image, drawable, save_file, log_file):
     pdb.gimp_context_push()
     #undo-start
     pdb.gimp_image_undo_group_start(image)
@@ -279,7 +280,7 @@ def add_angle_layout(image, drawable, save_file):
  
     img_name = pdb.gimp_image_get_filename(image)
     
-    write_to_file(r"C:\test.csv", img_name + ';'+ str(round(angle, 1))+ ';degrees')
+    write_to_file(log_file, img_name + ';'+ str(round(angle, 1))+ ';degrees')
 
     #pdb.gimp_image_remove_vectors(image, vectors)
 
@@ -307,6 +308,7 @@ register(
               (PF_DRAWABLE, "drawable", "Исходный слой", None), # Указатель на слой
               (PF_FLOAT, "real_size", "Реальный размер объекта (mm.)", 255), # Реальный размер объекта  в милиметрах
               (PF_BOOL, "save_file", "Экспортировать результат?", True), # Сохранить ли файл
+              (PF_STRING, "log_file", "Файл для записи измерений в текстовом виде:", os.path.expanduser("~\Documents\deviation.csv")), # имя файла для логирования результатов
           ],
           [], # Список переменных которые вернет дополнение
           add_deviation_layout, menu="<Image>/Deviation measurements/") # Имя исходной функции и меню в которое будет помещён пункт запускающий дополнение
@@ -324,6 +326,7 @@ register(
               (PF_IMAGE, "image", "Исходное изображение", None), # Указатель на изображение
               (PF_DRAWABLE, "drawable", "Исходный слой", None), # Указатель на слой
               (PF_BOOL, "save_file", "Экспортировать результат?", True), # Сохранить ли файл
+              (PF_STRING, "log_file", "Файл для записи измерений в текстовом виде:", os.path.expanduser("~\Documents\angle.csv")), # имя файла для логирования результатов
           ],
           [], # Список переменных которые вернет дополнение
           add_angle_layout, menu="<Image>/Deviation measurements/") # Имя исходной функции и меню в которое будет помещён пункт запускающий дополнение
