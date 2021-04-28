@@ -97,16 +97,33 @@ def finish_execution(image, message):
     pdb.gimp_context_pop()
 
  
+def stroke_selection(image, drawable, group):
+    # set context for stroke
+    pdb.gimp_context_set_opacity(90)
+    pdb.gimp_context_set_paint_mode(LAYER_MODE_NORMAL)
+    pdb.gimp_context_set_stroke_method(STROKE_LINE)
+    pdb.gimp_context_set_line_width(2.5)
+    # color   gimpcolor.RGB(255,0,0)
+    border_layer = add_new_layer_beneath(image, drawable, group)
+    pdb.gimp_item_set_name(border_layer, 'crack_outline')
+    pdb.gimp_drawable_edit_stroke_selection(border_layer)
+
+
 def add_area_layout(image, drawable, real_size, units, save_file, log_file):
     pdb.gimp_context_push()
     #undo-start
     pdb.gimp_image_undo_group_start(image)
-  
     _, _, _, pixels, _, _ = pdb.gimp_drawable_histogram(drawable, HISTOGRAM_VALUE, 0, 1)
-    
+
     group = pdb.gimp_layer_group_new(image)
     pdb.gimp_item_set_name(group, 'area_layout')
     pdb.gimp_image_insert_layer(image, group, None, 0)
+    
+    stroke_selection(image, drawable, group)
+  
+    
+    
+
 
     # get info from vectors
     vectors = pdb.gimp_image_get_active_vectors(image)
@@ -138,8 +155,10 @@ def add_area_layout(image, drawable, real_size, units, save_file, log_file):
 
     #write_to_file(log_file, img_name + ';'+  str(real_size) + ';'
     #              + str(round(target_real_size, 1))+ ';' + units+ '²')
-  
+   
     pdb.gimp_displays_flush()
+
+
 
     # undo-end
     finish_execution (image,'Завершено')
