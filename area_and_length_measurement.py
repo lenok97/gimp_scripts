@@ -23,7 +23,7 @@ def write_to_file(file_name, line):
 
 #https://github.com/VegetarianZombie/gimp-text-outliner/blob/bc4ffbdebd06e8610144767c4d28111660c5b730/text-outliner.py
 # Adds a new layer beneath the given layer. Return value is the new layer
-def add_new_layer_beneath(image, layer, parent = None):
+def add_new_layer_beneath(image, layer, name, parent = None):
 	# Get the layer position.
 	pos = 0;
 	for i in range(len(image.layers)):
@@ -34,7 +34,7 @@ def add_new_layer_beneath(image, layer, parent = None):
 	else:
 		type = GRAYA_IMAGE
 	# Add a new layer below the selected one
-	new_layer = add_layer_into_group(image, 'text outline',  parent, pos + 2)
+	new_layer = add_layer_into_group(image, name,  parent, pos + 2)
 	return new_layer
 
 # Selects the contents of the given layer, then grows it by "thickness"
@@ -62,7 +62,7 @@ def fill_selection(layer, color):
 
 
 def add_outline(image, layer, thickness, feather, parent):
-	new_layer = add_new_layer_beneath(image, layer, parent)
+	new_layer = add_new_layer_beneath(image, layer, 'text_outline', parent)
 	create_selection(image, layer, thickness, feather)
 	fill_selection(new_layer, gimpcolor.RGB(0,0,0))	
 	pdb.gimp_selection_none(image)
@@ -91,6 +91,7 @@ def add_layer_into_group(image, layer_name, group, pos = 1):
     pdb.gimp_image_insert_layer(image, drawable, group, pos)
     return drawable
 
+
 def finish_execution(image, message):
     gimp.message(message)
     pdb.gimp_image_undo_group_end(image)
@@ -104,27 +105,80 @@ def stroke_selection(image, drawable, group):
     pdb.gimp_context_set_stroke_method(STROKE_LINE)
     pdb.gimp_context_set_line_width(2.5)
     # color   gimpcolor.RGB(255,0,0)
-    border_layer = add_new_layer_beneath(image, drawable, group)
-    pdb.gimp_item_set_name(border_layer, 'crack_outline')
+    border_layer = add_new_layer_beneath(image, drawable, 'crack_outline', group)
     pdb.gimp_drawable_edit_stroke_selection(border_layer)
+
+# https://github.com/iwabuchiken/WS_Others.Art-deprecated.20190617_174059-/blob/fe2dad57431304497cc69bcaccb14a5004dea72d/JVEMV6/46_art/2_image-prog/1_gimp/4_/plugin_2_1_4.py
+def draw_pencil_lines(drawable, lines, width = 10, color = gimpcolor.RGB(0,0,0)):
+    pdb.gimp_context_set_foreground(color)
+    pdb.gimp_context_set_brush_size(width)
+    pdb.gimp_pencil(drawable, len(lines), lines)
+  
+
+def newline(x1,y1,x2,y2):
+	return [x1,y1,x1,y1,x1,y1,x2,y2,x2,y2,x2,y2];
+
+
+def paint_scale_line(image, group, scale_factor, units):
+    offset = int(2 / scale_factor)
+    pdb.gimp_image_resize(image, image.width + offset, image.height + offset, offset, -offset)
+    
+    background = gimp.Layer(image, 'background', image.width, image.height, RGBA_IMAGE, 100, NORMAL_MODE)
+    pdb.gimp_image_insert_layer(image, background, None, 255)
+    pdb.gimp_selection_all(image)
+
+    fill_selection(background, gimpcolor.RGB(255,255,255))
+    
+    color = gimpcolor.RGB(0,0,0)
+    line_width = 2
+    drawable = gimp.Layer(image, 'vertical_line', image.width, image.height, RGBA_IMAGE, 100, NORMAL_MODE)
+    pdb.gimp_image_insert_layer(image, drawable, group, 1)
+    x1 = 0
+    x2 = 2 / scale_factor
+    y = image.height
+    while (y > 0):
+        draw_pencil_lines(drawable, 
+                          newline(x1, y, x2, y), 
+                          line_width, color)
+        y -= 10 / scale_factor
+
+    drawable = gimp.Layer(image, 'horizontal_line', image.width, image.height, RGBA_IMAGE, 100, NORMAL_MODE)
+    pdb.gimp_image_insert_layer(image, drawable, group, 1)
+    x = 0
+    y1 = image.height
+    y2 = image.height - 2 / scale_factor
+
+    add_text(image, str(10) + ' '+ units, group, 
+             pos = [0, y1],
+             points = int (0.05 * image.width))
+
+    while (x < image.width):
+        draw_pencil_lines(drawable, 
+                          newline(x, y1, x, y2), 
+                          line_width, color)
+        x += 10 / scale_factor
 
 
 def add_area_layout(image, drawable, real_size, units, save_file, log_file):
     pdb.gimp_context_push()
     #undo-start
     pdb.gimp_image_undo_group_start(image)
-    _, _, _, pixels, _, _ = pdb.gimp_drawable_histogram(drawable, HISTOGRAM_VALUE, 0, 1)
+   # drawable = pdb.gimp_image_merge_visible_layers(image, 0)
+    
+    temp_layer = add_new_layer_beneath(image, drawable, 'filled_selection')
+    fill_selection(temp_layer, gimpcolor.RGB(0,125,125))	
+    _, _, _, pixels, _, _ = pdb.gimp_drawable_histogram(temp_layer, HISTOGRAM_VALUE, 0, 1)
+
+   # pdb.gimp_item_delete(temp_layer)
+
+   # pdb.gimp_file_load_layer(image, 'scale_line.png')
 
     group = pdb.gimp_layer_group_new(image)
     pdb.gimp_item_set_name(group, 'area_layout')
     pdb.gimp_image_insert_layer(image, group, None, 0)
     
     stroke_selection(image, drawable, group)
-  
-    
-    
-
-
+ 
     # get info from vectors
     vectors = pdb.gimp_image_get_active_vectors(image)
     if (vectors == None):
@@ -146,7 +200,8 @@ def add_area_layout(image, drawable, real_size, units, save_file, log_file):
     add_text(image, str(round(real_area_size, 1)) + ' '+ units + '²', group, 
              pos = [0, 0],
              points = int (0.05 * image.width))
-    
+    paint_scale_line(image, group, scale_factor, units)
+
     img_name = pdb.gimp_image_get_filename(image)
   
     ## write header for new file
