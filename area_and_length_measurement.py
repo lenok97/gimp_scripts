@@ -108,6 +108,7 @@ def stroke_selection(image, drawable, group):
     border_layer = add_new_layer_beneath(image, drawable, 'crack_outline', group)
     pdb.gimp_drawable_edit_stroke_selection(border_layer)
 
+
 # https://github.com/iwabuchiken/WS_Others.Art-deprecated.20190617_174059-/blob/fe2dad57431304497cc69bcaccb14a5004dea72d/JVEMV6/46_art/2_image-prog/1_gimp/4_/plugin_2_1_4.py
 def draw_pencil_lines(drawable, lines, width = 10, color = gimpcolor.RGB(0,0,0)):
     pdb.gimp_context_set_foreground(color)
@@ -213,13 +214,80 @@ def add_area_layout(image, drawable, real_size, units, save_file, log_file):
    
     pdb.gimp_displays_flush()
 
+    # undo-end
+    finish_execution (image,'Завершено')
+    if (save_file):
+        merge_and_export(image, img_name, '_deviation')
+    #pdb.gimp_image_remove_vectors(image, vectors)
 
+
+def add_length_layout(image, drawable, real_size, units, save_file, log_file):
+    pdb.gimp_context_push()
+    #undo-start
+    pdb.gimp_image_undo_group_start(image)
+
+    group = pdb.gimp_layer_group_new(image)
+    pdb.gimp_item_set_name(group, 'length_layout')
+    pdb.gimp_image_insert_layer(image, group, None, 0)
+     
+    # get info from vectors
+    vectors = pdb.gimp_image_get_active_vectors(image)
+    if (vectors == None):
+        finish_execution (image,
+                          'Не обнаружено векторов. Добавьте вектор по диаметру стойки и вдоль объекта')
+        return
+
+    strokes_num, strokes = pdb.gimp_vectors_get_strokes(vectors)
+    if (strokes_num != 2):
+        finish_execution (image,
+                          'Неверная разметка. Для операции требуетя 2 вектора. На изображении сейчас: '+ str (strokes_num))
+        return
+
+    # first vector is object size mark used to find out reality/photo scale factor 
+    photo_size = pdb.gimp_vectors_stroke_get_length(vectors, strokes[0], 1)
+    # second vector is extent of object 
+    obj_len = pdb.gimp_vectors_stroke_get_length(vectors, strokes[1], 1)
+    stroke_type, n_points, cpoints, closed = pdb.gimp_vectors_stroke_get_points(vectors, strokes[1])
+    length_layer = add_layer_into_group(image, 'length_line', group)
+    c_len = len(cpoints)
+    gimp.message(str(cpoints))
+    pencil_width = int (1000 /image.width)
+    if pencil_width < 1:
+        pencil_width = 1
+    i = 0
+    while i < c_len-8:
+        draw_pencil_lines(length_layer, 
+                         newline(cpoints[i], cpoints[i+1], cpoints[i+6], cpoints[i+7]), 
+                         width = pencil_width, color = gimpcolor.RGB(0,255,0))
+        i+=6
+    pdb.gimp_layer_set_opacity(length_layer, 30)
+
+    scale_factor = (real_size / float(photo_size)) #reality/photo scale factor
+    real_length_size =  float(obj_len) *scale_factor
+
+    add_text(image, str(round(real_length_size, 1)) + ' '+ units, group, 
+             pos = [0, 0],
+             points = int (0.05 * image.width))
+    paint_scale_line(image, group, scale_factor, units)
+
+    img_name = pdb.gimp_image_get_filename(image)
+  
+    ## write header for new file
+    #if (not(os.path.exists(log_file))):
+    #    write_to_file(log_file, 'img_name;sample_real_size;target_real_size;units')
+
+    #write_to_file(log_file, img_name + ';'+  str(real_size) + ';'
+    #              + str(round(target_real_size, 1))+ ';' + units+ '²')
+   
+    pdb.gimp_displays_flush()
 
     # undo-end
     finish_execution (image,'Завершено')
     if (save_file):
         merge_and_export(image, img_name, '_deviation')
     #pdb.gimp_image_remove_vectors(image, vectors)
+
+
 
 def merge_and_export(image, out_file, prefix = ''):
     pdb.gimp_context_push()
@@ -239,7 +307,7 @@ def merge_and_export(image, out_file, prefix = ''):
 # Регистрируем функции в PDB
 register(
           "python-fu-add-area-layout", # Имя регистрируемой функции
-          "Добавление разметку площади", # Информация о дополнении
+          "Добавление разметки площади", # Информация о дополнении
           "Позволяет измерить площадь области, используя какой-то известный размер другого объекта на фото. Наносит разметку на изображение и записывает результат в файл", # Короткое описание выполняемых скриптом действий
           "Lena Kolos", # Информация об авторе
           "Lena Kolos (koloslena97@gmail.com)", # Информация о копирайте (копилефте?)
@@ -249,13 +317,34 @@ register(
           [
               (PF_IMAGE, "image", "Исходное изображение", None), # Указатель на изображение
               (PF_DRAWABLE, "drawable", "Исходный слой", None), # Указатель на слой
-              (PF_FLOAT, "real_size", "Реальный размер объекта (в ед. из.):", 255), # Реальный размер объекта  в ед. измерения
+              (PF_FLOAT, "real_size", "Реальный размер объекта (в ед. из.):", 50), # Реальный размер объекта  в ед. измерения
               (PF_STRING, "units", "Единицы измерения (ед. из.):", "cm"),
               (PF_BOOL, "save_file", "Экспортировать результат?", True), # Сохранить ли файл
               (PF_STRING, "log_file", "Файл для записи измерений в текстовом виде:", os.path.expanduser("~\Documents\gimp_areas.csv")), # имя файла для логирования результатов
           ],
           [], # Список переменных которые вернет дополнение
           add_area_layout, menu="<Image>/Deviation measurements/") # Имя исходной функции и меню в которое будет помещён пункт запускающий дополнение
+
+
+register(
+          "python-fu-add-length-layout", # Имя регистрируемой функции
+          "Добавление разметки протяженности", # Информация о дополнении
+          "Позволяет измерить протяженность объекта, используя какой-то известный размер другого объекта на фото. Наносит разметку на изображение и записывает результат в файл", # Короткое описание выполняемых скриптом действий
+          "Lena Kolos", # Информация об авторе
+          "Lena Kolos (koloslena97@gmail.com)", # Информация о копирайте (копилефте?)
+          "15.06.2021", # Дата изготовления
+          "Измерение протяженности объекта", # Название пункта меню, с помощью которого дополнение будет запускаться
+          "*", # Типы изображений с которыми может работать дополнение
+          [
+              (PF_IMAGE, "image", "Исходное изображение", None), # Указатель на изображение
+              (PF_DRAWABLE, "drawable", "Исходный слой", None), # Указатель на слой
+              (PF_FLOAT, "real_size", "Реальный размер объекта (в ед. из.):", 50), # Реальный размер объекта  в ед. измерения
+              (PF_STRING, "units", "Единицы измерения (ед. из.):", "cm"),
+              (PF_BOOL, "save_file", "Экспортировать результат?", True), # Сохранить ли файл
+              (PF_STRING, "log_file", "Файл для записи измерений в текстовом виде:", os.path.expanduser("~\Documents\gimp_length.csv")), # имя файла для логирования результатов
+          ],
+          [], # Список переменных которые вернет дополнение
+          add_length_layout, menu="<Image>/Deviation measurements/") # Имя исходной функции и меню в которое будет помещён пункт запускающий дополнение
 
 # Запускаем скрипт
 main()
